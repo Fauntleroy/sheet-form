@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { OAuth2Client } from 'google-auth-library';
 
 import { encryptString } from '@/utils/encryption';
+import { oAuthClient } from '@/app/clients/google';
 
 const ENCRYPTION_KEY: string = process.env.ENCRYPTION_KEY;
-
-const oAuthClient = new OAuth2Client(
-  process.env.NEXT_PUBLIC_GOOGLE_APP_CLIENT_ID,
-  process.env.GOOGLE_APP_CLIENT_SECRET,
-  'http://localhost:3000'
-);
 
 async function storeToken(token: any, tokenType: string, userId: string) {
   kv.set(
@@ -57,13 +51,14 @@ export async function POST(request: NextRequest) {
     // store access token and refresh token for user
     storeToken(encryptedAccessToken, 'accessToken', email);
     storeToken(encryptedRefreshToken, 'refreshToken', email);
+
+    // return token
+    return NextResponse.json(
+      { message: 'Tokens successfully generated and stored.', accessToken },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ message: error?.message }, { status: 500 });
   }
-
-  return NextResponse.json(
-    { message: 'Tokens successfully generated and stored.' },
-    { status: 200 }
-  );
 }

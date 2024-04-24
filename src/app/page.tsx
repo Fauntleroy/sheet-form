@@ -3,6 +3,7 @@ import Image from 'next/image';
 import css from './page.module.css';
 
 import { Authorization } from '@/components/authorization';
+import { Sheets } from '@/components/sheets';
 
 export default function Home() {
   return (
@@ -15,6 +16,7 @@ export default function Home() {
       />
       <h1>Sheet Form</h1>
       <Authorization />
+      <Sheets />
     </main>
   );
 }

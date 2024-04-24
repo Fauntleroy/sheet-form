@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useContext } from 'react';
 
 import Script from 'next/script';
+import { AppContext } from '@/context';
 
 const GOOGLE_APP_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_APP_CLIENT_ID;
 const GOOGLE_APP_SCOPES = [
@@ -29,6 +30,11 @@ async function sendAuthCode(authCode: string) {
         authCode
       })
     });
+    const responseJson = await response.json();
+
+    return {
+      accessToken: responseJson.accessToken
+    };
   } catch (error) {
     console.error(error);
   }
@@ -36,18 +42,18 @@ async function sendAuthCode(authCode: string) {
 
 export function Authorization() {
   const googleAuthClientRef = useRef(null);
+  const { setAccessToken } = useContext(AppContext);
 
   interface AuthCompleteArguments {
     code: string;
   }
 
-  function handleAuthComplete(
+  async function handleAuthComplete(
     { code, ...other }: AuthCompleteArguments,
     ...restArgs: any[]
   ) {
-    console.log('other stuff from auth complete', other, restArgs);
-    sendAuthCode(code);
-    console.log('handle auth complete called.', code);
+    const { accessToken } = await sendAuthCode(code);
+    setAccessToken(accessToken);
   }
 
   function handleGoogleAuthLoad() {
