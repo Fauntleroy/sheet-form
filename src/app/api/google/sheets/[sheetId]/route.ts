@@ -17,15 +17,22 @@ export async function GET(
     });
     await spreadsheet.loadInfo();
     const firstSheet = spreadsheet.sheetsByIndex[0];
-    await firstSheet.loadCells('A1:C1');
+    await firstSheet.loadCells('A1:C2');
     const cellA1 = firstSheet.getCellByA1('A1');
     const cellB1 = firstSheet.getCellByA1('B1');
     const cellC1 = firstSheet.getCellByA1('C1');
+    const cellA2 = firstSheet.getCellByA1('A2');
+    const cellB2 = firstSheet.getCellByA1('B2');
+    const cellC2 = firstSheet.getCellByA1('C2');
+
+    const fields = [cellA1.value, cellB1.value, cellC1.value];
+    const values = [cellA2.value, cellB2.value, cellC2.value];
 
     return NextResponse.json(
       {
         message: 'Sheet read successfully.',
-        cells: [cellA1.value, cellB1.value, cellC1.value]
+        fields,
+        values
       },
       { status: 200 }
     );

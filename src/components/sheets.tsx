@@ -20,22 +20,31 @@ async function getSpreadsheet(spreadsheetId: string, accessToken: string) {
   return spreadSheetJson;
 }
 
-function Cells({ cells }: { cells: string[] }) {
+function Cells({ fields, values }: { fields: string[]; values: string[] }) {
+  function handleSubmit(event) {
+    event.preventDefault();
+    console.log('update cells here', event.formData);
+  }
+
   return (
-    <ul>
-      {cells.map((cell: string) => (
-        <li key={cell}>
-          <label htmlFor={cell}>{cell}</label>
-          <input type="text" name={cell} />
-        </li>
-      ))}
-    </ul>
+    <form onSubmit={handleSubmit}>
+      <ul>
+        {fields.map((field: string, i: number) => (
+          <li key={field}>
+            <label htmlFor={field}>{field}</label>
+            <input type="text" name={field} value={values[i] || ''} />
+          </li>
+        ))}
+      </ul>
+      <button type="submit">Update Cells</button>
+    </form>
   );
 }
 
 export function Sheets() {
   const { accessToken } = useContext(AppContext);
-  const [cells, setCells] = useState(null);
+  const [fields, setFields] = useState(null);
+  const [values, setValues] = useState(null);
   const hasAccessToken: boolean = !!accessToken;
 
   async function handleCreateNewSheetClick() {
@@ -59,8 +68,8 @@ export function Sheets() {
       accessToken
     );
 
-    console.log('spreadsheetData', spreadsheetData, spreadsheetData.cells);
-    setCells(spreadsheetData.cells);
+    setFields(spreadsheetData.fields);
+    setValues(spreadsheetData.values);
   }
 
   return (
@@ -76,8 +85,8 @@ export function Sheets() {
         {hasAccessToken && (
           <button onClick={handleLoadSheetDataClick}>Load Sheet Data</button>
         )}
-        {!cells && <div>Sheet data goes here</div>}
-        {!!cells && <Cells cells={cells} />}
+        {!fields && <div>Sheet data goes here</div>}
+        {!!fields && !!values && <Cells fields={fields} values={values} />}
       </div>
     </div>
   );
