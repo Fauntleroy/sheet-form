@@ -24,7 +24,7 @@ async function getSpreadsheet(spreadsheetId: string, accessToken: string) {
 
 async function updateSpreadsheet(
   spreadsheetId: string,
-  fieldUpdates: any,
+  fieldUpdates: (string | null)[],
   accessToken: string
 ) {
   const updateSpreadsheetResponse = await fetch(
@@ -45,11 +45,9 @@ async function updateSpreadsheet(
 
 function Cells({
   fields,
-  values,
   spreadsheetId
 }: {
-  fields: string[];
-  values: string[];
+  fields: any[];
   spreadsheetId: string;
 }) {
   const { accessToken } = useContext(AppContext);
@@ -63,24 +61,25 @@ function Cells({
     }
 
     const formData = new FormData(formRef.current);
+    const formValues = Array.from(formData.values());
     const updateResult = await updateSpreadsheet(
       spreadsheetId,
-      {
-        Name: formData.get('Name')
-      },
+      formValues,
       accessToken
     );
-    console.log('update result', updateResult);
-    console.log('update cells here', event.formData, formRef.current);
   }
 
   return (
     <form onSubmit={handleSubmit} ref={formRef}>
       <ul>
-        {fields.map((field: string, i: number) => (
-          <li key={field}>
-            <label htmlFor={field}>{field}</label>
-            <input type="text" name={field} defaultValue={values[i] || ''} />
+        {fields.map((field: { name: string; value: string }, i: number) => (
+          <li key={field.name}>
+            <label htmlFor={field.name}>{field.name}</label>
+            <input
+              type="text"
+              name={field.name}
+              defaultValue={field.value || ''}
+            />
           </li>
         ))}
       </ul>
@@ -91,8 +90,7 @@ function Cells({
 
 export function Sheets() {
   const { accessToken } = useContext(AppContext);
-  const [fields, setFields] = useState(null);
-  const [values, setValues] = useState(null);
+  const [entries, setEntries] = useState([]);
   const hasAccessToken: boolean = !!accessToken;
   const spreadsheetId = SPREADSHEET_ID; // temporary constant value
 
@@ -114,8 +112,7 @@ export function Sheets() {
   async function handleLoadSheetDataClick() {
     const spreadsheetData = await getSpreadsheet(spreadsheetId, accessToken);
 
-    setFields(spreadsheetData.fields);
-    setValues(spreadsheetData.values);
+    setEntries(spreadsheetData.entries);
   }
 
   return (
@@ -131,14 +128,17 @@ export function Sheets() {
         {hasAccessToken && (
           <button onClick={handleLoadSheetDataClick}>Load Sheet Data</button>
         )}
-        {!fields && <div>Sheet data goes here</div>}
-        {!!fields && !!values && (
-          <Cells
-            fields={fields}
-            values={values}
-            spreadsheetId={spreadsheetId}
-          />
-        )}
+        {!entries && <div>Sheet data goes here</div>}
+        {!!entries &&
+          entries.map((entry, i) => {
+            return (
+              <Cells
+                fields={entry}
+                spreadsheetId={spreadsheetId}
+                key={`entry-${i}`}
+              />
+            );
+          })}
       </div>
     </div>
   );
