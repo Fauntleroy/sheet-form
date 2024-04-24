@@ -40,3 +40,43 @@ export async function GET(
     return NextResponse.json({ message: error?.message }, { status: 500 });
   }
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { sheetId: string } }
+) {
+  try {
+    const accessToken = request.headers.get('X-Access-Token');
+
+    if (!accessToken) {
+      throw new Error('No access token found');
+    }
+
+    if (!request.body) {
+      throw new Error('Request body is empty');
+    }
+
+    const body = await request.json();
+
+    const spreadsheet = new GoogleSpreadsheet(params.sheetId, {
+      token: accessToken
+    });
+    await spreadsheet.loadInfo();
+    const firstSheet = spreadsheet.sheetsByIndex[0];
+    await firstSheet.loadCells('A1:C2');
+    const nameCell = firstSheet.getCellByA1('A2');
+    nameCell.value = body.fieldUpdates['Name'];
+    await firstSheet.saveUpdatedCells();
+
+    return NextResponse.json(
+      {
+        message: 'Sheet updated successfully.'
+      },
+      { status: 200 }
+    );
+
+    console.log('request body', body);
+  } catch (error: any) {
+    return NextResponse.json({ message: error?.message }, { status: 500 });
+  }
+}

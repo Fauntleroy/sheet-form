@@ -1,8 +1,10 @@
 'use client';
 
-import { useContext, useState } from 'react';
+import { useContext, useState, useRef } from 'react';
 
 import { AppContext } from '@/context';
+
+const SPREADSHEET_ID = '1rBYGkKmV4aCJOOmesdEw5B6s6bSfSPMRrnlhUlxf2_o';
 
 async function getSpreadsheet(spreadsheetId: string, accessToken: string) {
   const spreadsheetResponse = await fetch(
@@ -20,19 +22,65 @@ async function getSpreadsheet(spreadsheetId: string, accessToken: string) {
   return spreadSheetJson;
 }
 
-function Cells({ fields, values }: { fields: string[]; values: string[] }) {
-  function handleSubmit(event) {
+async function updateSpreadsheet(
+  spreadsheetId: string,
+  fieldUpdates: any,
+  accessToken: string
+) {
+  const updateSpreadsheetResponse = await fetch(
+    `/api/google/sheets/${spreadsheetId}`,
+    {
+      method: 'PUT',
+      headers: {
+        'X-Access-Token': accessToken
+      },
+      body: JSON.stringify({
+        fieldUpdates
+      })
+    }
+  );
+  const updateSpreadsheetResponseJson = await updateSpreadsheetResponse.json();
+  return updateSpreadsheetResponseJson;
+}
+
+function Cells({
+  fields,
+  values,
+  spreadsheetId
+}: {
+  fields: string[];
+  values: string[];
+  spreadsheetId: string;
+}) {
+  const { accessToken } = useContext(AppContext);
+  const formRef = useRef(null);
+
+  async function handleSubmit(event) {
     event.preventDefault();
-    console.log('update cells here', event.formData);
+    if (!formRef.current) {
+      console.error('form element does not exist');
+      return;
+    }
+
+    const formData = new FormData(formRef.current);
+    const updateResult = await updateSpreadsheet(
+      spreadsheetId,
+      {
+        Name: formData.get('Name')
+      },
+      accessToken
+    );
+    console.log('update result', updateResult);
+    console.log('update cells here', event.formData, formRef.current);
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} ref={formRef}>
       <ul>
         {fields.map((field: string, i: number) => (
           <li key={field}>
             <label htmlFor={field}>{field}</label>
-            <input type="text" name={field} value={values[i] || ''} />
+            <input type="text" name={field} defaultValue={values[i] || ''} />
           </li>
         ))}
       </ul>
@@ -46,6 +94,7 @@ export function Sheets() {
   const [fields, setFields] = useState(null);
   const [values, setValues] = useState(null);
   const hasAccessToken: boolean = !!accessToken;
+  const spreadsheetId = SPREADSHEET_ID; // temporary constant value
 
   async function handleCreateNewSheetClick() {
     console.log('accessToken', accessToken);
@@ -63,10 +112,7 @@ export function Sheets() {
   }
 
   async function handleLoadSheetDataClick() {
-    const spreadsheetData = await getSpreadsheet(
-      '1rBYGkKmV4aCJOOmesdEw5B6s6bSfSPMRrnlhUlxf2_o',
-      accessToken
-    );
+    const spreadsheetData = await getSpreadsheet(spreadsheetId, accessToken);
 
     setFields(spreadsheetData.fields);
     setValues(spreadsheetData.values);
@@ -86,7 +132,13 @@ export function Sheets() {
           <button onClick={handleLoadSheetDataClick}>Load Sheet Data</button>
         )}
         {!fields && <div>Sheet data goes here</div>}
-        {!!fields && !!values && <Cells fields={fields} values={values} />}
+        {!!fields && !!values && (
+          <Cells
+            fields={fields}
+            values={values}
+            spreadsheetId={spreadsheetId}
+          />
+        )}
       </div>
     </div>
   );
