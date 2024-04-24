@@ -20,3 +20,14 @@ button {
   padding: 0.5em 0.75em;
   cursor: pointer;
 }
+
+table {
+  border-width: 1px;
+  border-color: black;
+  border-style: solid;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+}

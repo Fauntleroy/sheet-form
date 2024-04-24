@@ -64,7 +64,8 @@ export async function GET(
     return NextResponse.json(
       {
         message: 'Sheet read successfully.',
-        entries
+        entries,
+        fieldNames
       },
       { status: 200 }
     );
@@ -135,7 +136,11 @@ export async function POST(
     });
     await spreadsheet.loadInfo();
     const firstSheet = spreadsheet.sheetsByIndex[0];
-    const newRowIndex = firstSheet.rowCount + 1;
+    await firstSheet.loadCells();
+    let newRowIndex = 0;
+    while (!!firstSheet.getCell(newRowIndex, 0).value) {
+      newRowIndex++;
+    }
     body.fieldValues.forEach((fieldValue: string, fieldIndex: number) => {
       const fieldValueCell = firstSheet.getCell(newRowIndex, fieldIndex);
       fieldValueCell.value = fieldValue;

@@ -43,11 +43,55 @@ async function updateSpreadsheet(
   return updateSpreadsheetResponseJson;
 }
 
-function Cells({
-  fields,
+async function addEntryToSpreadsheet(
+  spreadsheetId: string,
+  fieldValues: (string | null)[],
+  accessToken: string
+) {
+  const addEntryToSpreadsheet = await fetch(
+    `/api/google/sheets/${spreadsheetId}`,
+    {
+      method: 'POST',
+      headers: {
+        'X-Access-Token': accessToken
+      },
+      body: JSON.stringify({
+        fieldValues
+      })
+    }
+  );
+  const addEntryToSpreadsheetJson = await addEntryToSpreadsheet.json();
+  return addEntryToSpreadsheetJson;
+}
+
+function EntryView({ fields }: { fields: any[] }) {
+  const formRef = useRef(null);
+
+  return (
+    <table>
+      <thead>
+        <tr>
+          {fields.map(({ name }, i) => (
+            <th key={`${name}-${i}`}>{name}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {fields.map(({ value }, i) => (
+            <td key={`${value}-${i}`}>{value}</td>
+          ))}
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
+function EntryCreate({
+  fieldNames,
   spreadsheetId
 }: {
-  fields: any[];
+  fieldNames: any[];
   spreadsheetId: string;
 }) {
   const { accessToken } = useContext(AppContext);
@@ -61,29 +105,29 @@ function Cells({
     }
 
     const formData = new FormData(formRef.current);
-    const formValues = Array.from(formData.values());
-    const updateResult = await updateSpreadsheet(
+    const fieldValues = Array.from(formData.values());
+    const createResult = await addEntryToSpreadsheet(
       spreadsheetId,
-      formValues,
+      fieldValues,
       accessToken
     );
+    formRef.current.reset();
   }
 
   return (
     <form onSubmit={handleSubmit} ref={formRef}>
+      <div>
+        <strong>Create New Entry</strong>
+      </div>
       <ul>
-        {fields.map((field: { name: string; value: string }, i: number) => (
-          <li key={field.name}>
-            <label htmlFor={field.name}>{field.name}</label>
-            <input
-              type="text"
-              name={field.name}
-              defaultValue={field.value || ''}
-            />
+        {fieldNames.map((field: string, i: number) => (
+          <li key={field}>
+            <label htmlFor={field}>{field}</label>
+            <input type="text" name={field} defaultValue={''} />
           </li>
         ))}
       </ul>
-      <button type="submit">Update Cells</button>
+      <button type="submit">Create New Entry</button>
     </form>
   );
 }
@@ -91,6 +135,7 @@ function Cells({
 export function Sheets() {
   const { accessToken } = useContext(AppContext);
   const [entries, setEntries] = useState([]);
+  const [fieldNames, setFieldNames] = useState([]);
   const hasAccessToken: boolean = !!accessToken;
   const spreadsheetId = SPREADSHEET_ID; // temporary constant value
 
@@ -113,6 +158,7 @@ export function Sheets() {
     const spreadsheetData = await getSpreadsheet(spreadsheetId, accessToken);
 
     setEntries(spreadsheetData.entries);
+    setFieldNames(spreadsheetData.fieldNames);
   }
 
   return (
@@ -128,17 +174,19 @@ export function Sheets() {
         {hasAccessToken && (
           <button onClick={handleLoadSheetDataClick}>Load Sheet Data</button>
         )}
-        {!entries && <div>Sheet data goes here</div>}
-        {!!entries &&
+        {entries.length === 0 && <div>Sheet data goes here</div>}
+        {entries.length > 0 &&
           entries.map((entry, i) => {
-            return (
-              <Cells
-                fields={entry}
-                spreadsheetId={spreadsheetId}
-                key={`entry-${i}`}
-              />
-            );
+            return <EntryView fields={entry} key={`entry-${i}`} />;
           })}
+        {fieldNames.length > 0 && (
+          <div>
+            <EntryCreate
+              fieldNames={fieldNames}
+              spreadsheetId={spreadsheetId}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
